@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>QuestRoll – Question Bank Randomizer</title>
+<meta name="description" content="Roll a random question from your serial question bank. Offline study companion.">
+<meta name="theme-color" content="#1b1446"><link rel="manifest" href="manifest.json"><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><meta name="mobile-web-app-capable" content="yes">
+<style>
+:root,[data-t=night]{--bg1:#1b1446;--bg2:#40206e;--ink:#f6f2ff;--mut:#b6addd;--a:#ff7a66;--b:#ffb347;--ok:#5ee6a8;--sf:rgba(255,255,255,.1);--ln:rgba(255,255,255,.18);--dk:#271c5c;--dg:#fff;--on:#2b0b05;--sh:#0b0624;--bad:#ff7b8a}
+[data-t=peach]{--bg1:#ffe3d3;--bg2:#ffc6dc;--ink:#3a1f3f;--mut:#7d5a80;--a:#ff4f8b;--b:#ff9a3d;--ok:#12906a;--sf:rgba(255,255,255,.55);--ln:rgba(58,31,63,.18);--dk:#4a2a55;--dg:#fff4ea;--on:#fff;--sh:#7a3b6a;--bad:#d62849}
+[data-t=moss]{--bg1:#0e2a22;--bg2:#1d4a3a;--ink:#eafff2;--mut:#8fc2ab;--a:#ffc24b;--b:#7ee08a;--ok:#7ee08a;--sf:rgba(255,255,255,.09);--ln:rgba(255,255,255,.16);--dk:#123a2d;--dg:#f4fff7;--on:#2b1d00;--sh:#03140f;--bad:#ff8c94}
+[data-t=ocean]{--bg1:#d9f0ff;--bg2:#bcd9ff;--ink:#0c2a47;--mut:#47688a;--a:#2f6bff;--b:#12c3b0;--ok:#0b8f63;--sf:rgba(255,255,255,.6);--ln:rgba(12,42,71,.18);--dk:#12325a;--dg:#eaf6ff;--on:#fff;--sh:#2a5a96;--bad:#d62849}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;min-height:100dvh;color:var(--ink);font:16px/1.4 ui-rounded,"SF Pro Rounded",Nunito,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:radial-gradient(90% 50% at 10% 0,color-mix(in srgb,var(--a) 30%,transparent),transparent),radial-gradient(90% 50% at 100% 100%,color-mix(in srgb,var(--b) 28%,transparent),transparent),linear-gradient(165deg,var(--bg1),var(--bg2)) fixed;display:flex;justify-content:center;overflow-x:hidden}
+#app{width:100%;max-width:460px;display:flex;flex-direction:column;gap:14px;padding:max(14px,env(safe-area-inset-top)) 16px max(18px,env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;gap:8px}.logo{display:flex;align-items:center;gap:9px;flex:1;min-width:0}.logo svg{width:32px;height:32px;flex:none;filter:drop-shadow(0 4px 6px var(--sh))}h1{margin:0;font-size:22px;font-weight:800;letter-spacing:-.4px}
+button,input{font:inherit;color:inherit}
+#chip{font-weight:700;font-size:14px;background:var(--sf);border:1px solid var(--ln);padding:7px 11px;border-radius:99px;white-space:nowrap}
+.key{--d:color-mix(in srgb,var(--ink) 24%,transparent);flex:1;min-width:0;position:relative;display:block;text-align:center;cursor:pointer;border:1px solid var(--ln);border-radius:18px;padding:15px 10px;font-weight:800;font-size:17px;background:var(--sf);box-shadow:0 5px 0 var(--d),0 12px 18px -8px var(--sh);transition:transform .1s,box-shadow .1s}
+.key:active{transform:translateY(4px);box-shadow:0 1px 0 var(--d),0 3px 6px -3px var(--sh)}.key:disabled{opacity:.55;pointer-events:none}
+.key.sm{padding:12px 8px;font-size:15px;border-radius:15px}.key.full{width:100%;flex:none;margin-bottom:12px}
+.key.hero{--d:color-mix(in srgb,var(--a) 58%,#000);border:0;color:var(--on);background:linear-gradient(180deg,color-mix(in srgb,var(--a) 78%,#fff),var(--a) 70%)}
+.ib{flex:none;width:42px;height:42px;padding:0;border-radius:14px;font-size:18px}
+.pill{align-self:center;cursor:pointer;border:1px solid var(--ln);background:var(--sf);border-radius:99px;padding:9px 18px;font-weight:700}
+#stage{perspective:1100px;touch-action:pan-y}
+.card{position:relative;transform-style:preserve-3d;transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .35s cubic-bezier(.2,.8,.2,1);border-radius:30px;padding:26px 14px 14px;text-align:center;background:linear-gradient(150deg,color-mix(in srgb,var(--ink) 15%,transparent),color-mix(in srgb,var(--ink) 4%,transparent));border:1px solid var(--ln);box-shadow:0 9px 0 -2px color-mix(in srgb,var(--ink) 12%,transparent),0 34px 46px -22px var(--sh)}
+.card:before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(circle at var(--gx,30%) var(--gy,0),rgba(255,255,255,.26),transparent 55%)}
+#reel{display:flex;gap:10px;justify-content:center;transform:translateZ(36px);transition:opacity .4s}#reel.idle{opacity:.45}
+.pop{animation:pop .6s cubic-bezier(.2,1.6,.4,1)}@keyframes pop{60%{scale:1.05}}
+.col{--h:clamp(70px,22vw,100px);--r:calc(var(--h)*1.54);position:relative;width:calc(var(--h)*.74);height:calc(var(--h)*1.5);perspective:calc(var(--h)*6);overflow:hidden;isolation:isolate;border-radius:18px;background:color-mix(in srgb,var(--dk) 60%,#000);box-shadow:0 0 0 1px var(--ln),0 14px 22px -10px var(--sh)}
+.col:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(#000c,#0000 32%,#0000 68%,#000c),linear-gradient(90deg,rgba(255,255,255,.14),#0000 28%,#0000 72%,rgba(0,0,0,.25))}
+.cy,.rot{position:absolute;transform-style:preserve-3d}.cy{left:0;right:0;top:calc(var(--h)*.25);height:var(--h);transform:translateZ(calc(var(--r)*-1))}.rot{inset:0;will-change:transform}
+.rot b{position:absolute;inset:0;display:grid;place-items:center;background:var(--dk);color:var(--dg);font-size:calc(var(--h)*.66);font-weight:800;backface-visibility:hidden;transform:rotateX(calc(var(--k)*36deg)) translateZ(var(--r))}
+#meta{margin:18px 0 4px;color:var(--mut);min-height:24px;transform:translateZ(20px)}.g{color:var(--ok)}
+.stars{display:flex;justify-content:center;gap:4px;transform:translateZ(20px)}.stars button{background:none;border:0;font-size:34px;color:color-mix(in srgb,var(--ink) 25%,transparent);transition:.15s;padding:2px 5px;cursor:pointer}.stars .on{color:#ffc43d;transform:scale(1.15);text-shadow:0 0 14px #ffc43d88}
+.bar{height:12px;border-radius:9px;background:var(--sf);box-shadow:inset 0 3px 6px rgba(0,0,0,.25);overflow:hidden}.bar i{display:block;height:100%;width:0;border-radius:9px;background:linear-gradient(180deg,color-mix(in srgb,var(--a) 70%,#fff),var(--a) 60%,var(--b));transition:width .8s cubic-bezier(.2,.9,.2,1)}
+#goal{margin:-6px 0 0;text-align:center;color:var(--mut);font-size:14px}
+#safe{align-self:center;background:none;border:0;color:var(--mut);font-size:14px;font-weight:700;padding:4px 10px;margin-top:-6px;cursor:pointer}
+.row{display:flex;gap:10px;padding-bottom:6px}
+#roll{flex:1.5;font-size:19px}#done.on{background:var(--ok);color:#042;border:0}
+#go{flex:1;min-width:0;border-radius:16px;border:1px solid var(--ln);background:var(--sf);padding:0 14px;box-shadow:inset 0 3px 8px rgba(0,0,0,.2)}#pomo.on{background:color-mix(in srgb,var(--a) 30%,transparent)}#bk{flex:1.5}
+.dot{position:absolute;top:5px;right:5px;width:11px;height:11px;border-radius:50%;background:var(--mut);border:2px solid var(--bg1)}.dot.ok{background:var(--ok)}.dot.dirty{background:#ffb020}.dot.err{background:#ff4d5e}.dot.busy{background:var(--b);animation:bl .7s infinite alternate}@keyframes bl{to{opacity:.2}}
+dialog{width:min(92vw,460px);max-height:90dvh;color:var(--ink);background:linear-gradient(170deg,color-mix(in srgb,var(--bg1) 86%,var(--ink)),var(--bg2));border:1px solid var(--ln);border-radius:28px;padding:20px 20px 14px;box-shadow:0 40px 80px -20px #000b;animation:up .35s cubic-bezier(.2,1.1,.3,1)}@keyframes up{from{transform:translateY(28px) scale(.97);opacity:0}}
+dialog::backdrop{background:rgba(10,6,30,.55);backdrop-filter:blur(5px)}
+dialog h2{margin:0 0 12px;font-size:21px}dialog label{display:block;font-size:14px;color:var(--mut);margin-bottom:10px}
+dialog input:not([type=file]):not([type=checkbox]){display:block;width:100%;margin-top:5px;padding:12px;border-radius:14px;border:1px solid var(--ln);background:var(--sf);box-shadow:inset 0 3px 8px rgba(0,0,0,.18)}
+dialog .row{flex-wrap:wrap}dialog .key.sm{flex:1 1 40%}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.hint{color:var(--mut);margin:0 0 12px}.err{color:var(--bad);margin:0 0 10px}
+.sw{display:flex!important;align-items:center;justify-content:space-between;gap:12px;color:var(--ink)!important;font-weight:700;font-size:16px!important;margin:0 0 12px!important}
+.sw input{appearance:none;-webkit-appearance:none;width:54px;height:32px;border-radius:99px;background:var(--sf);border:1px solid var(--ln);position:relative;flex:none;margin:0;box-shadow:inset 0 3px 6px rgba(0,0,0,.22);transition:background .2s}.sw input:before{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:var(--ink);box-shadow:0 2px 5px rgba(0,0,0,.4);transition:transform .2s}.sw input:checked{background:var(--ok)}.sw input:checked:before{transform:translateX(22px)}
+.sws{display:flex;gap:12px;justify-content:center;margin:0 0 16px}.swt{width:46px;height:46px;border-radius:50%;border:2px solid var(--ln);cursor:pointer;box-shadow:0 4px 0 var(--ln)}.swt.on{outline:3px solid var(--ink);outline-offset:2px}
+.steps{margin:0 0 14px;padding-left:20px;color:var(--mut);font-size:14px}.steps li{margin-bottom:6px}.steps b{color:var(--ink)}
+.stat{display:grid;gap:3px;background:var(--sf);border:1px solid var(--ln);border-radius:18px;padding:14px;margin-bottom:14px;box-shadow:inset 0 3px 8px rgba(0,0,0,.15)}.stat small{color:var(--mut)}
+.zone{display:flex;gap:10px;margin:2px 0 12px}.zone .key{font-size:14px;color:var(--bad);padding:12px 8px}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(46px,1fr));gap:7px;margin-bottom:14px;max-height:60dvh;overflow:auto;padding-bottom:4px}
+#grid button{aspect-ratio:1;border-radius:12px;border:1px solid var(--ln);background:var(--sf);font-weight:700;cursor:pointer;box-shadow:0 3px 0 var(--ln)}
+#grid .d{background:var(--ok);color:#042;border:0}#grid .x{background:repeating-linear-gradient(45deg,var(--sf) 0 4px,var(--ln) 4px 8px)}#grid .o{opacity:.3}#grid .c{outline:3px solid var(--a);outline-offset:1px}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:9}
+#toast{position:fixed;inset:auto auto calc(24px + env(safe-area-inset-bottom)) 50%;transform:translateX(-50%);margin:0;border:0;opacity:0;background:var(--ink);color:var(--bg1);padding:10px 18px;border-radius:99px;font-weight:700;max-width:90vw;text-align:center;box-shadow:0 10px 30px -8px var(--sh);pointer-events:none;transition:opacity .25s}#toast.on{opacity:1}
+button:focus-visible,input:focus-visible,label:focus-visible{outline:3px solid var(--b);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*,:before,:after{animation:none!important;transition:none!important}}
+</style></head><body>
+<div id="app">
+<header><div class="logo"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop style="stop-color:var(--a)"/><stop offset="1" style="stop-color:var(--b)"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(#lg)"/><g transform="rotate(8 32 32)"><rect x="14" y="14" width="36" height="36" rx="8" fill="#fff"/><g fill="#2a1f6b"><circle cx="23" cy="23" r="3.2"/><circle cx="41" cy="23" r="3.2"/><circle cx="32" cy="32" r="3.2"/><circle cx="23" cy="41" r="3.2"/><circle cx="41" cy="41" r="3.2"/></g></g></svg><h1>QuestRoll</h1></div><span id="chip"></span><button class="key ib" id="thm" aria-label="Change theme">🎨</button><button class="key ib" id="cfg" aria-label="Settings">⚙️</button></header>
+<button class="pill" id="pool"></button>
+<section id="stage"><div class="card" id="card"><div id="reel" class="idle"></div><p id="meta"></p><div class="stars" id="stars"></div></div></section>
+<div class="bar"><i id="bar"></i></div><p id="goal"></p><button id="safe"></button>
+<div class="row"><button class="key" id="done">✓ Complete</button><button class="key hero" id="roll">🎲 ROLL</button></div>
+<div class="row"><input id="go" type="number" min="1" inputmode="numeric" placeholder="Go to #"><button class="key sm" id="goB" style="flex:.5">Go</button></div>
+<div class="row"><button class="key sm" id="ex" aria-label="Exclude this question">🚫</button><button class="key sm" id="pomo">⏱ 25:00</button><button class="key sm" id="map" aria-label="Question map">🗺</button><button class="key sm" id="bk" aria-label="Back up now">🛡 Backup<i class="dot" id="dot"></i></button></div>
+</div>
+<dialog id="cfgD"><form method="dialog"><h2>Pool &amp; settings</h2>
+<label>Total questions in your bank<input id="iT" type="number" min="1" max="5000"></label>
+<div class="two"><label>Roll from #<input id="iF" type="number" min="1"></label><label>Roll to #<input id="iU" type="number" min="1"></label></div>
+<label>Exclude numbers (e.g. 3, 7, 10-12)<input id="iE" placeholder="none"></label>
+<label>Daily goal (questions)<input id="iG" type="number" min="1" max="200"></label>
+<p class="hint" id="pc"></p>
+<label class="sw">Sounds<input type="checkbox" id="snd"></label>
+<div class="sws" id="sws"></div>
+<button type="button" class="key full" id="vOpen">🛡 Backup controls</button>
+<div class="row"><button type="button" class="key sm" id="exp">Export</button><label class="key sm" for="imp" style="margin:0;color:inherit">Import</label><input id="imp" type="file" accept=".json" hidden><button type="button" class="key sm" id="rst">Reset</button><button type="button" class="key sm" id="inst" hidden>Install</button></div>
+<button class="key full">Done</button></form></dialog>
+<dialog id="mapD"><form method="dialog"><h2>Question map</h2><div id="grid"></div><button class="key full">Close</button></form></dialog>
+<dialog id="vD"><div><h2>🛡 Safe backup</h2>
+<div id="vS"><p class="hint">Keep your progress in your own private Telegram channel. Set it up once and this phone remembers it.</p>
+<ol class="steps"><li>In Telegram, open <b>@BotFather</b>, send <b>/newbot</b>, copy the token.</li><li>Create a private channel and add your bot as admin with <b>Post messages</b> and <b>Edit messages</b> on.</li><li>Paste both below. A channel ID looks like <b>-1001234567890</b>.</li></ol>
+<label>Bot token<input id="vTok" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="123456:ABC…"></label>
+<label>Channel ID<input id="vCh" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="-100…"></label>
+<p class="err" id="vErr"></p><p class="hint">Stays on this phone. Never included in backups or exports.</p>
+<button class="key hero full" id="vOk">Connect and verify</button></div>
+<div id="vC" hidden><div class="stat"><b id="vI"></b><span id="vL"></span><small id="vP"></small></div>
+<button class="key hero full" id="vNow">☁ Back up now</button>
+<label class="sw">Auto-backup after changes<input type="checkbox" id="aT"></label>
+<button class="key full" id="vRs">⤓ Restore latest backup</button>
+<div class="zone"><button class="key" id="vDel">🗑 Delete cloud backups</button><button class="key" id="vOff">⏏ Disconnect</button></div></div>
+<button class="key full" id="vX">Close</button></div></dialog>
+<canvas id="fx"></canvas><div id="toast" popover="manual"></div>
+<script>
+const $=s=>document.querySelector(s),K='questroll.v1',TK='questroll.tg',R=matchMedia('(prefers-reduced-motion:reduce)').matches,
+Q=['Pick a number. Beat the boredom.','One question at a time.','Future you says thanks.','Small wins add up.'],P=['Nice one!','Crushed it!','Another one down!','Keep it rolling!'],LB=['Easy','Okay','Medium','Hard','Brutal'],
+TH=[['night','Night','#1b1446','#ff7a66'],['peach','Peach','#ffc6dc','#ff4f8b'],['moss','Moss','#1d4a3a','#ffc24b'],['ocean','Ocean','#bcd9ff','#2f6bff']],
+D={total:100,from:1,to:100,ex:'',it:{},cur:null,xp:0,days:{},snd:1,goal:5,hist:[],th:'night'},
+ld=k=>{try{return JSON.parse(localStorage.getItem(k))||{}}catch(e){return{}}};
+let S=Object.assign({},D,ld(K)),T=ld(TK),at,bi=0,bs='',ch=0;
+if(!localStorage.getItem(K))S.to=S.total;
+const tsave=()=>localStorage.setItem(TK,JSON.stringify(T)),
+save=()=>{localStorage.setItem(K,JSON.stringify(S));ch++;if(T.tok){T.dirty=1;tsave();clearTimeout(at);if(T.auto)at=setTimeout(()=>backup(0),Math.max(2e4,12e4-(Date.now()-(T.last||0))))}sync()},
+today=()=>new Date().toLocaleDateString('en-CA'),rnd=n=>crypto.getRandomValues(new Uint32Array(1))[0]%n,lv=()=>Math.floor(Math.sqrt(S.xp/50))+1;
+const exSet=()=>{const s=new Set();S.ex.split(/[,\s]+/).forEach(p=>{const m=p.match(/^(\d+)(?:-(\d+))?$/);if(m)for(let i=+m[1];i<=+(m[2]||m[1])&&s.size<20000;i++)s.add(i)});return s};
+const pool=()=>{const e=exSet(),a=[];for(let n=S.from;n<=S.to;n++)if(!e.has(n)&&!(S.it[n]&&S.it[n].d))a.push(n);return a};
+const streak=()=>{let c=0,d=new Date();if(!S.days[today()])d.setDate(d.getDate()-1);while(S.days[d.toLocaleDateString('en-CA')]>0){c++;d.setDate(d.getDate()-1)}return c};
+let AC;const tone=(f,d=.12,t='sine',v=.15,w=0)=>{if(!S.snd)return;try{AC=AC||new(window.AudioContext||webkitAudioContext)();AC.resume();const o=AC.createOscillator(),g=AC.createGain(),s=AC.currentTime+w;o.type=t;o.frequency.value=f;g.gain.setValueAtTime(v,s);g.gain.exponentialRampToValueAtTime(.001,s+d);o.connect(g).connect(AC.destination);o.start(s);o.stop(s+d)}catch(e){}};
+const buzz=p=>navigator.vibrate&&navigator.vibrate(p);
+const toast=m=>{const t=$('#toast');t.textContent=m;try{t.hidePopover()}catch(e){}try{t.showPopover()}catch(e){}t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>{t.classList.remove('on');try{t.hidePopover()}catch(e){}},2600)};
+function confetti(){if(R)return;const c=$('#fx'),x=c.getContext('2d');c.width=innerWidth;c.height=innerHeight;const P=Array.from({length:100},()=>({x:innerWidth/2,y:innerHeight*.42,vx:(Math.random()-.5)*15,vy:-Math.random()*15-4,r:Math.random()*5+3,c:`hsl(${Math.random()*360} 90% 62%)`,a:Math.random()*6}));let f=0;(function t(){x.clearRect(0,0,c.width,c.height);P.forEach(p=>{p.vy+=.36;p.x+=p.vx;p.y+=p.vy;p.a+=.2;x.fillStyle=p.c;x.save();x.translate(p.x,p.y);x.rotate(p.a);x.fillRect(-p.r,-p.r/2,p.r*2,p.r);x.restore()});if(++f<110)requestAnimationFrame(t);else x.clearRect(0,0,c.width,c.height)})()}
+/* theme + 3D tilt */
+const theme=()=>{const m=TH.find(x=>x[0]==S.th)||TH[0];document.documentElement.dataset.t=m[0];$('meta[name=theme-color]').content=m[2]};
+$('#thm').onclick=()=>{const i=TH.findIndex(x=>x[0]==S.th),n=TH[(i+1)%TH.length];S.th=n[0];theme();save();toast('🎨 '+n[1]);tone(520+i*90,.12,'triangle')};
+const st=$('#stage'),cd=$('#card'),tilt=(x,y)=>{cd.style.setProperty('--ry',x*14+'deg');cd.style.setProperty('--rx',-y*14+'deg');cd.style.setProperty('--gx',(x+.5)*100+'%');cd.style.setProperty('--gy',(y+.5)*100+'%')};
+st.addEventListener('pointermove',e=>{if(R)return;const r=st.getBoundingClientRect();tilt((e.clientX-r.left)/r.width-.5,(e.clientY-r.top)/r.height-.5)});
+['pointerleave','pointerup','pointercancel'].forEach(n=>st.addEventListener(n,()=>tilt(0,0)));
+/* reel: 3D drums */
+function build(){const L=String(S.total).length,r=$('#reel');r.innerHTML='';for(let i=0;i<L;i++){const c=document.createElement('div');c.className='col';c.innerHTML='<div class="cy"><div class="rot">'+Array.from({length:10},(_,k)=>`<b style="--k:${k}">${k}</b>`).join('')+'</div></div>';r.append(c)}}
+function setReel(n,anim){const cs=[...$('#reel').children],ds=String(n==null?0:n).padStart(cs.length,'0').slice(-cs.length);cs.forEach((c,i)=>{const s=c.firstChild.firstChild,d=+ds[i],p=s._p||0,q=p+((d-p%10+10)%10),a=anim&&!R,t=a?q+10*(i+2):q,f=`rotateX(${-t*36}deg)`;s._p=t;if(t!=p)s.animate([{transform:`rotateX(${-p*36}deg)`},{transform:f}],{duration:a?1100+i*350:0,easing:'cubic-bezier(.15,.8,.15,1)'});s.style.transform=f})}
+let busy=0;
+function pick(n,anim){if(busy)return;S.cur=n;S.hist=[...S.hist.slice(-9),n];$('#reel').classList.remove('idle');setReel(n,anim);save();
+if(anim&&!R){busy=1;const L=$('#reel').children.length;for(let i=0;i<16;i++)tone(950-i*28,.03,'square',.04,Math.pow(i/16,1.8)*1.3);buzz(15);
+setTimeout(()=>{busy=0;tone(523,.15,'triangle',.2);tone(784,.3,'triangle',.2,.1);buzz(30);const c=$('#reel');c.classList.remove('pop');void c.offsetWidth;c.classList.add('pop')},1100+(L-1)*350+60)}render()}
+function roll(){if(busy)return;const p=pool();if(!p.length)return toast(S.from>S.to?'Range is empty – fix From/To':'Pool empty – everything done! 🎉');const q=p.filter(x=>!S.hist.slice(-3).includes(x));pick((q.length?q:p)[rnd((q.length?q:p).length)],1)}
+function done(){const n=S.cur;if(n==null)return toast('Roll a question first');const it=S.it[n]=S.it[n]||{},t=today(),l0=lv();it.d=it.d?0:1;S.days[t]=Math.max(0,(S.days[t]||0)+(it.d?1:-1));S.xp=Math.max(0,S.xp+(it.d?10:-10));
+if(it.d){confetti();[523,659,784,1047].forEach((f,i)=>tone(f,.25,'triangle',.18,i*.08));buzz([20,30,40]);if(S.days[t]==S.goal)setTimeout(()=>{toast('🏆 Daily goal smashed!');confetti()},700);else if(lv()>l0)toast('⬆️ Level '+lv()+'!');else toast(P[rnd(P.length)])}else tone(300,.15);save();render()}
+function rate(r){if(S.cur==null)return toast('Roll a question first');const it=S.it[S.cur]=S.it[S.cur]||{};it.r=it.r==r?0:r;tone(500+r*110,.18,'triangle');buzz(10);save();render()}
+function render(){const p=pool(),n=S.cur,it=S.it[n]||{},dn=Object.values(S.it).filter(x=>x.d).length,td=S.days[today()]||0;
+$('#pool').textContent=`🎯 ${S.from}–${S.to} · ${p.length} left`;$('#chip').textContent=`🔥${streak()} · Lv${lv()}`;
+$('#meta').innerHTML=n==null?Q[dn%Q.length]:`#${n} of ${S.total}${it.d?' · <b class=g>✓ done</b>':''}${it.r?' · '+LB[it.r-1]:''}`;
+$('#done').classList.toggle('on',!!it.d);$('#done').textContent=it.d?'✓ Completed':'✓ Complete';
+[...$('#stars').children].forEach((b,i)=>b.classList.toggle('on',i<(it.r||0)));
+$('#bar').style.width=Math.min(100,dn/S.total*100)+'%';$('#goal').textContent=`Today ${td}/${S.goal}${td>=S.goal?' 🏆':''} · ${dn}/${S.total} done · ${S.xp} XP`;sync()}
+$('#stars').innerHTML='<button>★</button>'.repeat(5);[...$('#stars').children].forEach((b,i)=>{b.ariaLabel=`Rate ${i+1} of 5`;b.onclick=()=>rate(i+1)});
+$('#roll').onclick=roll;$('#done').onclick=done;
+$('#goB').onclick=()=>{const n=+$('#go').value;if(n<1||n>S.total)return toast('Pick 1–'+S.total);pick(n,1);$('#go').value=''};
+$('#ex').onclick=()=>{if(S.cur==null)return toast('Roll a question first');S.ex=(S.ex?S.ex+', ':'')+S.cur;save();tone(220,.2,'sawtooth',.08);toast('Excluded #'+S.cur);roll()};
+let pt=1500,pi=0;const pf=()=>`⏱ ${Math.floor(pt/60)}:${String(pt%60).padStart(2,'0')}`;
+$('#pomo').onclick=()=>{if(pi){clearInterval(pi);pi=0;$('#pomo').classList.remove('on');return}$('#pomo').classList.add('on');tone(660,.1);pi=setInterval(()=>{if(--pt<=0){clearInterval(pi);pi=0;pt=1500;$('#pomo').classList.remove('on');[0,.25,.5].forEach(w=>tone(880,.4,'sine',.2,w));buzz([200,100,200]);toast('Focus done – take 5 ☕')}$('#pomo').textContent=pf()},1000)};
+$('#map').onclick=()=>{const e=exSet(),g=$('#grid');g.innerHTML='';for(let n=1;n<=S.total;n++){const b=document.createElement('button'),it=S.it[n]||{};b.textContent=n;b.className=(it.d?'d ':'')+(e.has(n)?'x ':'')+(n<S.from||n>S.to?'o ':'')+(n==S.cur?'c':'');b.onclick=()=>{$('#mapD').close();pick(n,0)};g.append(b)}$('#mapD').showModal()};
+const fill=()=>{$('#iT').value=S.total;$('#iF').value=S.from;$('#iU').value=S.to;$('#iE').value=S.ex;$('#iG').value=S.goal;$('#pc').textContent=`${pool().length} questions in the pool`;$('#snd').checked=!!S.snd;$('#sws').innerHTML=TH.map(t=>`<button type="button" class="swt${S.th==t[0]?' on':''}" data-th="${t[0]}" aria-label="${t[1]} theme" title="${t[1]}" style="background:linear-gradient(135deg,${t[2]} 50%,${t[3]} 50%)"></button>`).join('')};
+const apply=()=>{S.total=Math.max(1,Math.min(5000,+$('#iT').value||1));S.from=Math.max(1,+$('#iF').value||1);S.to=Math.min(S.total,+$('#iU').value||S.total);S.ex=$('#iE').value;S.goal=Math.max(1,+$('#iG').value||5);save();if($('#reel').children.length!=String(S.total).length){build();setReel(S.cur,0)}$('#pc').textContent=`${pool().length} questions in the pool`;render()};
+['#iT','#iF','#iU','#iE','#iG'].forEach(s=>$(s).oninput=apply);$('#cfg').onclick=$('#pool').onclick=()=>{fill();$('#cfgD').showModal()};
+$('#snd').onchange=e=>{S.snd=e.target.checked?1:0;save();tone(660,.1)};
+$('#sws').onclick=e=>{const b=e.target.closest('[data-th]');if(b){S.th=b.dataset.th;theme();save();fill();tone(600,.1,'triangle')}};
+$('#exp').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));a.download='questroll-backup-'+today()+'.json';a.click()};
+$('#imp').onchange=e=>{const f=e.target.files[0];if(f)f.text().then(t=>{try{const j=JSON.parse(t);S=Object.assign({},D,j.app=='questroll'&&j.data?j.data:j);save();location.reload()}catch(x){toast('That file isn’t a valid backup')}})};
+$('#rst').onclick=()=>{if(confirm('Reset ALL progress on this phone?'+(T.tok?'\nAuto-backup will switch off so your cloud copy stays safe.':''))){if(T.tok){T.auto=0;tsave()}S.it={};S.cur=null;S.xp=0;S.days={};S.hist=[];save();location.reload()}};
+/* ---- Safe backup (Telegram) ---- */
+const ago=t=>{const s=(Date.now()-t)/1e3;return s<60?'just now':s<3600?Math.floor(s/60)+' min ago':s<86400?Math.floor(s/3600)+' h ago':new Date(t).toLocaleDateString()},
+why=m=>/unauthorized/i.test(m)?'That token isn’t valid. Copy it again from @BotFather.':/chat not found/i.test(m)?'Channel not found. Check the ID (starts with -100) and add the bot as admin.':/not a member|kicked/i.test(m)?'The bot isn’t in that channel. Add it as an admin.':/rights|administrator/i.test(m)?'The bot needs admin rights with “Post messages” on.':m,
+fm=o=>{const f=new FormData();for(const k in o)f.append(k,o[k]);return f},
+api=async(m,o,tok=T.tok)=>{let r;try{r=await fetch(`https://api.telegram.org/bot${tok}/${m}`,{method:'POST',body:fm(o)})}catch(e){throw Error('No connection. Try again when you’re online.')}const j=await r.json().catch(()=>({}));if(!j.ok)throw Error(j.description||'Telegram refused (HTTP '+r.status+')');return j.result};
+function sync(){const k=!T.tok?'off':bs||(T.dirty||!T.last?'dirty':'ok');$('#dot').className='dot '+k;$('#safe').textContent=!T.tok?'☁ Set up safe backup':k=='busy'?'☁ Backing up…':k=='err'?'☁ Backup failed – tap to fix':k=='dirty'?'☁ '+(T.last?'Changes not backed up':'Not backed up yet'):'☁ Backed up '+ago(T.last)}
+function renderV(){const c=!!T.tok;$('#vS').hidden=c;$('#vC').hidden=!c;if(!c)return;$('#vI').textContent=`🤖 @${T.bot} → ${T.title}`;$('#vL').textContent=bs=='err'?'⚠ '+(T.err||'Last backup failed'):T.last?`Last backup ${ago(T.last)} · ${Math.max(1,Math.round((T.size||0)/1024))} KB · ${(T.msgs||[]).length} in channel`:'No backup yet';$('#vP').textContent=T.pin===0?'Tip: give the bot “Edit messages” so you can restore on a new phone.':'';$('#aT').checked=!!T.auto;$('#vNow').disabled=!!bi;$('#vNow').textContent=bi?'☁ Backing up…':'☁ Back up now'}
+const openV=()=>{renderV();$('#vD').showModal()};
+async function backup(man){if(!T.tok)return openV();if(bi)return;if(!navigator.onLine){if(man)toast('You’re offline – backup runs when you’re back');return}
+bi=1;bs='busy';sync();renderV();const c0=ch;
+try{const n=new Date(),dn=Object.values(S.it).filter(x=>x.d).length,f=new File([JSON.stringify({app:'questroll',v:1,at:n.toISOString(),data:S})],`questroll-${n.toISOString().slice(0,16).replace(/[:T]/g,'-')}.json`,{type:'application/json'}),
+m=await api('sendDocument',{chat_id:T.chat,disable_notification:true,caption:`🎲 QuestRoll backup\n${dn}/${S.total} done · Lv${lv()} · ${S.xp} XP\n${n.toLocaleString()}`,document:f}),ms=T.msgs||[],p=ms[ms.length-1];
+T.msgs=[...ms,m.message_id].slice(-300);T.fid=m.document.file_id;T.last=Date.now();T.size=f.size;T.dirty=ch==c0?0:1;T.err='';bs='';tsave();
+api('pinChatMessage',{chat_id:T.chat,message_id:m.message_id,disable_notification:true}).then(()=>{T.pin=1;tsave();if(p)api('unpinChatMessage',{chat_id:T.chat,message_id:p}).catch(()=>{})}).catch(()=>{T.pin=0;tsave();renderV()});
+if(man){toast('✅ Backed up to Telegram');tone(660,.12,'triangle');tone(990,.2,'triangle',.15,.1)}}
+catch(e){bs='err';T.err=why(e.message);tsave();if(man)toast(T.err)}
+bi=0;sync();renderV()}
+async function restore(soft){try{let fid=T.fid;const c=await api('getChat',{chat_id:T.chat}).catch(()=>({}));if(c.pinned_message&&c.pinned_message.document)fid=c.pinned_message.document.file_id;if(!fid){if(!soft)toast('No backup found yet – tap Back up now first');return -1}
+const f=await api('getFile',{file_id:fid}),r=await fetch(`https://api.telegram.org/file/bot${T.tok}/${f.file_path}`);if(!r.ok)throw Error('Download failed ('+r.status+')');const j=await r.json();
+if(j.app!='questroll'||!j.data||typeof j.data!='object')throw Error('That file isn’t a QuestRoll backup');
+const d=Object.values(j.data.it||{}).filter(x=>x&&x.d).length;
+if(!confirm(`Restore the backup from ${new Date(j.at).toLocaleString()}?\n${d} done · ${j.data.xp||0} XP\n\nYour current progress is saved as a safety copy first.`))return 0;
+localStorage.setItem(K+'.prev',JSON.stringify(S));S=Object.assign({},D,j.data);localStorage.setItem(K,JSON.stringify(S));T.dirty=0;tsave();location.reload();return 1}
+catch(e){toast('Restore failed: '+why(e.message));return 0}}
+$('#bk').onclick=()=>T.tok?backup(1):openV();$('#safe').onclick=openV;$('#vOpen').onclick=()=>{$('#cfgD').close();openV()};$('#vX').onclick=()=>$('#vD').close();
+$('#vNow').onclick=()=>backup(1);$('#vRs').onclick=()=>restore();
+$('#aT').onchange=e=>{T.auto=e.target.checked?1:0;tsave();if(T.auto&&T.dirty)backup(0)};
+$('#vOk').onclick=async()=>{const tok=$('#vTok').value.trim(),chat=$('#vCh').value.trim(),e=$('#vErr'),b=$('#vOk');if(!tok||!chat){e.textContent='Fill in both fields.';return}
+b.disabled=1;b.textContent='Checking…';e.textContent='';
+try{const me=await api('getMe',{},tok),ch2=await api('getChat',{chat_id:chat},tok),m=await api('getChatMember',{chat_id:chat,user_id:me.id},tok);
+if(!/^(administrator|creator)$/.test(m.status)||m.can_post_messages===false)throw Error('The bot needs admin rights with “Post messages” on.');
+T={tok,chat:String(ch2.id),bot:me.username,title:ch2.title||'your channel',msgs:[],auto:1,dirty:1};tsave();$('#vTok').value='';toast('🔐 Connected to '+T.title);sync();renderV();
+if(await restore(1)==-1)backup(1)}catch(x){e.textContent=why(x.message)}b.disabled=0;b.textContent='Connect and verify'};
+$('#vDel').onclick=async()=>{const ids=T.msgs||[];if(!confirm(`Delete ${ids.length} backup file(s) from the channel?\nProgress on this phone is not touched, and auto-backup switches off.`))return;let n=0;for(const id of ids){try{await api('deleteMessage',{chat_id:T.chat,message_id:id});n++}catch(e){}}
+T.msgs=[];T.fid='';T.last=0;T.auto=0;T.pin=1;tsave();toast(`Deleted ${n} of ${ids.length}`+(n<ids.length?' – Telegram keeps older ones; remove them in the channel':''));sync();renderV()};
+$('#vOff').onclick=()=>{if(confirm('Forget the bot token and channel on this phone?\nYour backups in Telegram stay where they are.')){localStorage.removeItem(TK);T={};sync();renderV();toast('Disconnected')}};
+addEventListener('online',()=>{if(T.tok&&T.auto&&T.dirty)backup(0)});
+addEventListener('keydown',e=>{if(/INPUT/.test(e.target.tagName)||document.querySelector('dialog[open]'))return;if(e.code=='Space'){e.preventDefault();roll()}else if(e.key=='Enter'||e.key=='c')done();else if(/^[1-5]$/.test(e.key))rate(+e.key)});
+let ip;addEventListener('beforeinstallprompt',e=>{e.preventDefault();ip=e;$('#inst').hidden=0});$('#inst').onclick=()=>ip&&ip.prompt();
+if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js'));
+navigator.storage&&navigator.storage.persist&&navigator.storage.persist();
+theme();build();if(S.cur!=null){$('#reel').classList.remove('idle');setReel(S.cur,0)}render();
+if(T.tok&&T.auto&&T.dirty)setTimeout(()=>backup(0),4000);
+if(location.search.includes('action=roll'))setTimeout(roll,500);
+</script></body></html>
